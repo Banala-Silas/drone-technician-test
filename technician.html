@@ -271,7 +271,7 @@
   <div class="sort-backdrop" onclick="closeSort()"></div>
   <div class="sort-box">
     <div class="sort-title">Sort by</div>
-    <div class="sort-option" onclick="setSort('id')" data-sort="id">drone name <span class="sort-check" id="sc-id"></span></div>
+    <div class="sort-option" onclick="setSort('id')" data-sort="id">Drone ID <span class="sort-check" id="sc-id"></span></div>
     <div class="sort-option" onclick="setSort('status')" data-sort="status">Status <span class="sort-check" id="sc-status"></span></div>
     <div class="sort-option" onclick="setSort('reason')" data-sort="reason">Reason <span class="sort-check" id="sc-reason"></span></div>
     <div class="sort-option" onclick="setSort('time')" data-sort="time">Time <span class="sort-check" id="sc-time"></span></div>
@@ -468,7 +468,8 @@ function renderDrilldown() {
 
   // Sort
   const sorted = [...drones].sort((a,b) => {
-    if (sortBy === 'id')     return a.id.localeCompare(b.id);
+    //if (sortBy === 'id')     return a.id.localeCompare(b.id);
+    if (sortBy === 'id') {return (a.name || "").localeCompare(b.name || "", undefined, {numeric: true,sensitivity: "base"});}
     if (sortBy === 'status') return a.status.localeCompare(b.status);
     if (sortBy === 'reason') return a.reason.localeCompare(b.reason);
     if (sortBy === 'time')   return a.updated.localeCompare(b.updated);
