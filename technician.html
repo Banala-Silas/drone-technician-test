@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#1a1a2e"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="Tech Repairs"/>
+  <title>Drone Repairs — Technician</title>
+  <style>
+    :root {
+      --bg:#f4f5f7; --surface:#fff; --surface2:#f8f9fa;
+      --border:rgba(0,0,0,.09); --text:#1a1a1a; --text2:#555; --text3:#999;
+      --red:#e24b4a; --red-bg:#fdf0f0; --red-border:#f5c6c6;
+      --orange:#ef7b27; --orange-bg:#fff3e8; --orange-border:#f5c6a0;
+      --green:#29ba74; --green-bg:#eaf3de; --green-border:#b7dfa0;
+      --blue:#4a6fa5; --blue-bg:#eef2f8;
+      --radius:12px; --radius-sm:8px; --radius-xs:6px;
+      --header:#1a1a2e;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text)}
+
+    /* ── SETUP ── */
+    #setup{position:fixed;inset:0;background:var(--surface);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto}
+    #setup.hidden{display:none}
+    .setup-logo{width:68px;height:68px;background:var(--header);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+    .setup-logo svg{width:36px;height:36px;fill:#ef7b27}
+    .setup-title{font-size:22px;font-weight:700;margin-bottom:6px}
+    .setup-sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:28px;line-height:1.5}
+    .setup-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;align-self:flex-start;margin-bottom:6px}
+    .setup-input{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--surface2);outline:none;margin-bottom:20px}
+    .setup-input:focus{border-color:var(--orange)}
+    .setup-btn{width:100%;padding:14px;background:var(--header);color:white;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer}
+    .setup-hint{font-size:12px;color:var(--text3);line-height:1.6;align-self:flex-start;margin-top:-14px;margin-bottom:20px}
+    .setup-skip{font-size:13px;color:var(--text3);margin-top:14px;cursor:pointer;text-decoration:underline}
+
+    /* ── APP SHELL ── */
+    #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+    header{background:var(--header);color:white;padding:env(safe-area-inset-top,14px) 16px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .header-left{display:flex;align-items:center;gap:10px}
+    .header-icon{width:34px;height:34px;background:rgba(255,255,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center}
+    .header-icon svg{width:20px;height:20px;fill:#ef7b27}
+    .header-title{font-size:17px;font-weight:700}
+    .header-sub{font-size:11px;opacity:.6;margin-top:1px}
+    .header-btn{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;padding:4px}
+    .header-btn svg{width:20px;height:20px;fill:rgba(255,255,255,.7)}
+
+    /* ── LOADING ── */
+    #loading{flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+    #loading.visible{display:flex}
+    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{font-size:14px;color:var(--text3)}
+
+    /* ── DASHBOARD ── */
+    #dashboard{flex:1;overflow-y:auto;display:none}
+    #dashboard.visible{display:block}
+    .dash-header{padding:16px 16px 0}
+
+    /* Top summary cards */
+    .top-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .top-card{background:var(--surface);border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border);position:relative;overflow:hidden}
+    .top-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .top-card-fail::before{background:var(--red)}
+    .top-card-wip::before{background:var(--orange)}
+    .top-card-num{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+    .top-card-fail .top-card-num{color:var(--red)}
+    .top-card-wip .top-card-num{color:var(--orange)}
+    .top-card-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+    .top-card-sub{font-size:10px;color:var(--text3);margin-top:2px}
+
+    /* Date list */
+    .section-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding:0 16px}
+    .date-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 10px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:box-shadow .15s}
+    .date-card:active{background:var(--surface2)}
+    .date-card.all-done{opacity:.65}
+    .date-icon{width:40px;height:40px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+    .date-info{flex:1;min-width:0}
+    .date-label{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .date-pills{display:flex;gap:6px;flex-wrap:wrap}
+    .dpill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+    .dpill-fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+    .dpill-wip{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+    .dpill-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+    .date-chevron{color:var(--text3);font-size:18px;flex-shrink:0}
+    .dash-footer{height:30px}
+
+    /* ── DRILLDOWN ── */
+    #drilldown{flex:1;display:none;flex-direction:column;overflow:hidden}
+    #drilldown.visible{display:flex}
+    .drill-header-bar{padding:10px 16px 0;flex-shrink:0;background:var(--bg)}
+
+    /* Mini summary cards */
+    .mini-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+    .mini-card{background:var(--surface);border-radius:var(--radius-sm);padding:10px 8px;text-align:center;border:1px solid var(--border)}
+    .mini-card-num{font-size:20px;font-weight:700;line-height:1}
+    .mini-card-label{font-size:10px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+    .mc-fail .mini-card-num{color:var(--red)}
+    .mc-fail{border-top:2.5px solid var(--red)}
+    .mc-wip .mini-card-num{color:var(--orange)}
+    .mc-wip{border-top:2.5px solid var(--orange)}
+    .mc-good .mini-card-num{color:var(--green)}
+    .mc-good{border-top:2.5px solid var(--green)}
+
+    /* Toolbar */
+    .drill-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .select-all-btn{font-size:13px;font-weight:600;color:var(--blue);background:none;border:none;cursor:pointer;padding:4px 0}
+    .sort-btn{font-size:12px;font-weight:600;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:4px}
+    .sort-btn svg{width:13px;height:13px;fill:var(--text2)}
+
+    /* Drone list */
+    .drill-list{flex:1;overflow-y:auto;padding:0 16px}
+    .drone-row{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
+    .drone-row.selected{border-color:var(--blue);background:var(--blue-bg)}
+    .drone-row:active{background:var(--surface2)}
+    .drone-checkbox{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .drone-row.selected .drone-checkbox{background:var(--blue);border-color:var(--blue)}
+    .drone-row.selected .drone-checkbox::after{content:'✓';color:white;font-size:12px;font-weight:700}
+    .drone-row-info{flex:1;min-width:0}
+    .drone-row-id{font-size:14px;font-weight:700;color:var(--text)}
+    .drone-row-reason{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drone-row-time{font-size:11px;color:var(--text3);margin-top:3px}
+    .status-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+    .badge-Fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+    .badge-Work-In-Progress{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+    .badge-Good{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+
+    /* Pagination */
+    .pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 16px}
+    .page-btn{padding:7px 14px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);font-size:13px;font-weight:600;color:var(--text2);cursor:pointer}
+    .page-btn:disabled{opacity:.35;cursor:not-allowed}
+    .page-info{font-size:13px;color:var(--text2);min-width:80px;text-align:center}
+    .drill-footer{height:90px}
+
+    /* ── BATCH ACTION BAR ── */
+    #batch-bar{position:fixed;bottom:0;left:0;right:0;background:var(--header);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:none;align-items:center;gap:10px;z-index:40;max-width:480px;margin:0 auto}
+    #batch-bar.visible{display:flex}
+    .batch-count{font-size:14px;font-weight:600;color:rgba(255,255,255,.8);flex:1}
+    .batch-good-btn{padding:10px 16px;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .batch-wip-btn{padding:10px 16px;background:var(--orange);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .batch-clear-btn{padding:10px 12px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer}
+
+    /* ── SORT MODAL ── */
+    #sort-modal{position:fixed;inset:0;z-index:60;display:none;align-items:flex-end;justify-content:center}
+    #sort-modal.open{display:flex}
+    .sort-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+    .sort-box{position:relative;background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));width:100%;max-width:480px;animation:slideUp .2s ease}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .sort-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text)}
+    .sort-option{padding:13px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    .sort-option:active{background:var(--surface2)}
+    .sort-option.active{background:var(--blue-bg);color:var(--blue);font-weight:600}
+    .sort-check{color:var(--blue);font-weight:700}
+
+    /* ── TOAST ── */
+    #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:white;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.success{background:var(--green)}
+    #toast.error{background:var(--red)}
+
+    .empty-msg{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px;line-height:1.7}
+    .list-meta{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500}
+  </style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-logo">
+    <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+  </div>
+  <div class="setup-title">Drone Repairs</div>
+  <div class="setup-sub">Technician App — connect to the same Apps Script URL</div>
+  <div class="setup-label">Apps Script Web App URL</div>
+  <input class="setup-input" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
+  <div class="setup-hint">Same URL used in the Operator app</div>
+  <button class="setup-btn" onclick="saveSetup()">Connect</button>
+  <div class="setup-skip" onclick="useDemoMode()">Use demo mode</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+      </div>
+      <div>
+        <div class="header-sub">TECHNICIAN</div>
+        <div class="header-title" id="header-title">Drone Repairs</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="header-btn" id="back-btn" onclick="goBack()" style="display:none" title="Back">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <button class="header-btn" onclick="openSetup()" title="Settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96a7.02 7.02 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading repairs data...</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+    <div class="dash-header">
+      <div class="top-cards">
+        <div class="top-card top-card-fail">
+          <div class="top-card-num" id="total-fail">0</div>
+          <div class="top-card-label">Total Failed</div>
+          <div class="top-card-sub">across all dates</div>
+        </div>
+        <div class="top-card top-card-wip">
+          <div class="top-card-num" id="total-wip">0</div>
+          <div class="top-card-label">Work In Progress</div>
+          <div class="top-card-sub">across all dates</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-label">By Date (newest first)</div>
+    <div id="date-list"></div>
+    <div class="dash-footer"></div>
+  </div>
+
+  <!-- DRILLDOWN -->
+  <div id="drilldown">
+    <div class="drill-header-bar">
+      <div class="mini-cards">
+        <div class="mini-card mc-fail">
+          <div class="mini-card-num" id="drill-fail">0</div>
+          <div class="mini-card-label">Failed</div>
+        </div>
+        <div class="mini-card mc-wip">
+          <div class="mini-card-num" id="drill-wip">0</div>
+          <div class="mini-card-label">WIP</div>
+        </div>
+        <div class="mini-card mc-good">
+          <div class="mini-card-num" id="drill-good">0</div>
+          <div class="mini-card-label">Fixed</div>
+        </div>
+      </div>
+      <div class="drill-toolbar">
+        <button class="select-all-btn" id="select-all-btn" onclick="toggleSelectAll()">Select All</button>
+        <button class="sort-btn" onclick="openSort()">
+          <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+          Sort: <span id="sort-label">ID</span>
+        </button>
+      </div>
+      <div class="list-meta" id="drill-meta"></div>
+    </div>
+    <div class="drill-list" id="drill-list"></div>
+  </div>
+</div>
+
+<!-- BATCH BAR -->
+<div id="batch-bar">
+  <div class="batch-count" id="batch-count">0 selected</div>
+  <button class="batch-good-btn" onclick="batchAction('Good')">✓ Mark Good</button>
+  <button class="batch-wip-btn" onclick="batchAction('Work In Progress')">⟳ Mark WIP</button>
+  <button class="batch-clear-btn" onclick="clearSelection()">✕</button>
+</div>
+
+<!-- SORT MODAL -->
+<div id="sort-modal">
+  <div class="sort-backdrop" onclick="closeSort()"></div>
+  <div class="sort-box">
+    <div class="sort-title">Sort by</div>
+    <div class="sort-option" onclick="setSort('id')" data-sort="id">Drone ID <span class="sort-check" id="sc-id"></span></div>
+    <div class="sort-option" onclick="setSort('status')" data-sort="status">Status <span class="sort-check" id="sc-status"></span></div>
+    <div class="sort-option" onclick="setSort('reason')" data-sort="reason">Reason <span class="sort-check" id="sc-reason"></span></div>
+    <div class="sort-option" onclick="setSort('time')" data-sort="time">Time <span class="sort-check" id="sc-time"></span></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const PAGE_SIZE = 50;
+const DEMO_DATA = {
+  totalFail: 23, totalWip: 7,
+  dates: [
+    { date:'2026-06-24', displayDate:'24 Jun 2026', fail:18, wip:3,
+      drones:[
+        {id:'D-0003',name:'Drone D-0003',status:'Fail',   reason:'GPS ISSUE',   updated:'24 Jun 2026, 14:32'},
+        {id:'D-0007',name:'Drone D-0007',status:'Fail',   reason:'RTK ISSUE',   updated:'24 Jun 2026, 14:45'},
+        {id:'D-0012',name:'Drone D-0012',status:'Work In Progress',reason:'MOTOR - A',  updated:'24 Jun 2026, 15:10'},
+        {id:'D-0017',name:'Drone D-0017',status:'Fail',   reason:'LED ISSUE',   updated:'24 Jun 2026, 15:30'},
+        {id:'D-0021',name:'Drone D-0021',status:'Fail',   reason:'MAG ISSUE',   updated:'24 Jun 2026, 15:55'},
+        {id:'D-0034',name:'Drone D-0034',status:'Work In Progress',reason:'COMPASS CALIB',updated:'24 Jun 2026, 16:20'},
+        {id:'D-0041',name:'Drone D-0041',status:'Fail',   reason:'ESP CONFIG',  updated:'24 Jun 2026, 16:45'},
+        {id:'D-0055',name:'Drone D-0055',status:'Work In Progress',reason:'FILE ERROR', updated:'24 Jun 2026, 17:00'},
+        {id:'D-0062',name:'Drone D-0062',status:'Fail',   reason:'NO POWER',    updated:'24 Jun 2026, 17:15'},
+        {id:'D-0078',name:'Drone D-0078',status:'Fail',   reason:'MOTOR - B',   updated:'24 Jun 2026, 17:30'},
+      ]
+    },
+    { date:'2026-06-23', displayDate:'23 Jun 2026', fail:0, wip:4,
+      drones:[
+        {id:'D-0009',name:'Drone D-0009',status:'Work In Progress',reason:'MAG SCREW',  updated:'23 Jun 2026, 13:10'},
+        {id:'D-0025',name:'Drone D-0025',status:'Work In Progress',reason:'ACCEL CALIB',updated:'23 Jun 2026, 14:00'},
+        {id:'D-0038',name:'Drone D-0038',status:'Work In Progress',reason:'RTK ISSUE',  updated:'23 Jun 2026, 15:30'},
+        {id:'D-0047',name:'Drone D-0047',status:'Work In Progress',reason:'ESP RANGE',  updated:'23 Jun 2026, 16:00'},
+      ]
+    },
+    { date:'2026-06-22', displayDate:'22 Jun 2026', fail:0, wip:0,
+      drones:[]
+    },
+  ]
+};
+
+let config   = JSON.parse(localStorage.getItem('techConfig') || 'null');
+let allDates = [];
+let totalFail = 0, totalWip = 0;
+let currentDate = null;
+let currentDrones = [];
+let selectedIds = new Set();
+let sortBy = 'id';
+let currentPage = 1;
+let demoMode = false;
+
+// ── INIT ──
+window.onload = () => {
+  if (!config) {
+    document.getElementById('setup').classList.remove('hidden');
+  } else {
+    document.getElementById('setup').classList.add('hidden');
+    demoMode = config.demo || false;
+    loadData();
+  }
+};
+
+// ── SETUP ──
+function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  if (!url || !url.includes('script.google.com')) { showToast('Please paste a valid Apps Script URL','error'); return; }
+  config = { scriptUrl: url, demo: false };
+  localStorage.setItem('techConfig', JSON.stringify(config));
+  document.getElementById('setup').classList.add('hidden');
+  demoMode = false; loadData();
+}
+function useDemoMode() {
+  config = { demo: true };
+  localStorage.setItem('techConfig', JSON.stringify(config));
+  demoMode = true;
+  document.getElementById('setup').classList.add('hidden');
+  loadData();
+}
+function openSetup() {
+  if (config && config.scriptUrl) document.getElementById('setup-url').value = config.scriptUrl;
+  document.getElementById('setup').classList.remove('hidden');
+}
+
+// ── API ──
+async function apiCall(params) {
+  const url = new URL(config.scriptUrl);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// ── LOAD DASHBOARD DATA ──
+async function loadData() {
+  showLoading();
+  if (demoMode) {
+    await new Promise(r => setTimeout(r,600));
+    allDates  = DEMO_DATA.dates;
+    totalFail = DEMO_DATA.totalFail;
+    totalWip  = DEMO_DATA.totalWip;
+    showDashboard(); return;
+  }
+  try {
+    const data = await apiCall({ action:'getFailsByDate' });
+    allDates  = data.dates  || [];
+    totalFail = data.totalFail || 0;
+    totalWip  = data.totalWip  || 0;
+    showDashboard();
+  } catch(e) {
+    hideLoading();
+    showDashboard();
+    showToast('Load failed: ' + e.message, 'error');
+  }
+}
+
+// ── PANELS ──
+function showLoading() {
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('drilldown').classList.remove('visible');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.remove('visible');
+}
+function showDashboard() {
+  hideLoading();
+  document.getElementById('dashboard').classList.add('visible');
+  document.getElementById('drilldown').classList.remove('visible');
+  document.getElementById('back-btn').style.display = 'none';
+  document.getElementById('header-title').textContent = 'Drone Repairs';
+  hideBatchBar();
+  renderDashboard();
+}
+function showDrilldown(dateObj) {
+  currentDate   = dateObj;
+  currentDrones = [...dateObj.drones];
+  selectedIds.clear();
+  currentPage = 1;
+  hideLoading();
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('drilldown').classList.add('visible');
+  document.getElementById('back-btn').style.display = 'flex';
+  document.getElementById('header-title').textContent = dateObj.displayDate;
+  hideBatchBar();
+  renderDrilldown();
+}
+function goBack() { showDashboard(); }
+
+// ── RENDER DASHBOARD ──
+function renderDashboard() {
+  document.getElementById('total-fail').textContent = totalFail;
+  document.getElementById('total-wip').textContent  = totalWip;
+
+  const container = document.getElementById('date-list');
+  if (!allDates.length) {
+    container.innerHTML = '<div class="empty-msg">No failed or WIP drones found.<br>All clear! ✅</div>'; return;
+  }
+  container.innerHTML = allDates.map(d => {
+    const allDone = d.fail === 0 && d.wip === 0;
+    const pillsHtml = allDone
+      ? `<span class="dpill dpill-done">✅ All Resolved</span>`
+      : [
+          d.fail > 0 ? `<span class="dpill dpill-fail">🔴 ${d.fail} Failed</span>` : '',
+          d.wip  > 0 ? `<span class="dpill dpill-wip">🟠 ${d.wip} WIP</span>`    : '',
+        ].join('');
+    return `
+      <div class="date-card ${allDone?'all-done':''}" onclick="tapDate('${d.date}')">
+        <div class="date-icon">${allDone ? '✅' : '📅'}</div>
+        <div class="date-info">
+          <div class="date-label">${d.displayDate}</div>
+          <div class="date-pills">${pillsHtml}</div>
+        </div>
+        <div class="date-chevron">›</div>
+      </div>`;
+  }).join('');
+}
+
+function tapDate(dateKey) {
+  const dateObj = allDates.find(d => d.date === dateKey);
+  if (dateObj) showDrilldown(dateObj);
+}
+
+// ── RENDER DRILLDOWN ──
+function renderDrilldown() {
+  const drones = currentDate.drones;
+  const fail = drones.filter(d => d.status === 'Fail').length;
+  const wip  = drones.filter(d => d.status === 'Work In Progress').length;
+  const good = drones.filter(d => d.status === 'Good').length;
+  document.getElementById('drill-fail').textContent = fail;
+  document.getElementById('drill-wip').textContent  = wip;
+  document.getElementById('drill-good').textContent = good;
+
+  // Sort
+  const sorted = [...drones].sort((a,b) => {
+    if (sortBy === 'id')     return a.id.localeCompare(b.id);
+    if (sortBy === 'status') return a.status.localeCompare(b.status);
+    if (sortBy === 'reason') return a.reason.localeCompare(b.reason);
+    if (sortBy === 'time')   return a.updated.localeCompare(b.updated);
+    return 0;
+  });
+
+  // Paginate
+  const total      = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start    = (currentPage-1) * PAGE_SIZE;
+  const pageItems = sorted.slice(start, start + PAGE_SIZE);
+  const end      = Math.min(start + PAGE_SIZE, total);
+
+  document.getElementById('drill-meta').textContent =
+    total <= PAGE_SIZE ? `${total} drone${total!==1?'s':''}` :
+    `Showing ${start+1}–${end} of ${total}`;
+
+  // Select all button label
+  const allSelected = drones.length > 0 && drones.every(d => selectedIds.has(d.id));
+  document.getElementById('select-all-btn').textContent = allSelected ? 'Deselect All' : 'Select All';
+
+  let html = '';
+  if (!pageItems.length) {
+    html = '<div class="empty-msg">No drones to show</div>';
+  } else {
+    pageItems.forEach(d => {
+      const sel     = selectedIds.has(d.id);
+      const badgeCls = 'badge-' + d.status.replace(/\s+/g,'-');
+      const label   = d.status === 'Work In Progress' ? 'WIP' : d.status;
+      html += `
+        <div class="drone-row ${sel?'selected':''}" onclick="toggleSelect('${d.id}')">
+          <div class="drone-checkbox"></div>
+          <div class="drone-row-info">
+            <div class="drone-row-id">${d.id}</div>
+            <div class="drone-row-reason">${d.reason || '—'}</div>
+            <div class="drone-row-time">${d.updated || '—'}</div>
+          </div>
+          <span class="status-badge ${badgeCls}">${label}</span>
+        </div>`;
+    });
+  }
+
+  // Pagination
+  if (totalPages > 1) {
+    html += `<div class="pagination">
+      <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>
+      <span class="page-info">Page ${currentPage} / ${totalPages}</span>
+      <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next →</button>
+    </div>`;
+  } else {
+    html += '<div class="drill-footer"></div>';
+  }
+
+  document.getElementById('drill-list').innerHTML = html;
+  updateBatchBar();
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderDrilldown();
+  document.getElementById('drill-list').scrollTop = 0;
+}
+
+// ── SELECTION ──
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderDrilldown();
+}
+
+function toggleSelectAll() {
+  const drones = currentDate.drones;
+  const allSel = drones.every(d => selectedIds.has(d.id));
+  if (allSel) selectedIds.clear();
+  else drones.forEach(d => selectedIds.add(d.id));
+  renderDrilldown();
+}
+
+function clearSelection() { selectedIds.clear(); renderDrilldown(); }
+
+function updateBatchBar() {
+  const bar = document.getElementById('batch-bar');
+  const cnt = selectedIds.size;
+  if (cnt > 0) {
+    bar.classList.add('visible');
+    document.getElementById('batch-count').textContent = `${cnt} selected`;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+function hideBatchBar() { document.getElementById('batch-bar').classList.remove('visible'); }
+
+// ── BATCH ACTION ──
+async function batchAction(status) {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  const label = status === 'Good' ? 'Good' : 'WIP';
+
+  // Optimistic UI update
+  ids.forEach(id => {
+    const drone = currentDate.drones.find(d => d.id === id);
+    if (drone) drone.status = status;
+  });
+
+  // Update totals
+  recalcTotals();
+  selectedIds.clear();
+  renderDrilldown();
+  renderDashboard();
+  showToast(`✓ ${ids.length} drone${ids.length!==1?'s':''} marked ${label}`, 'success');
+
+  if (demoMode) return;
+  try {
+    await apiCall({ action:'batchUpdate', droneIds: JSON.stringify(ids), status });
+  } catch(e) {
+    showToast('Sync failed: ' + e.message, 'error');
+  }
+}
+
+function recalcTotals() {
+  totalFail = 0; totalWip = 0;
+  allDates.forEach(d => {
+    d.fail = d.drones.filter(x => x.status === 'Fail').length;
+    d.wip  = d.drones.filter(x => x.status === 'Work In Progress').length;
+    totalFail += d.fail;
+    totalWip  += d.wip;
+  });
+}
+
+// ── SORT ──
+function openSort()  { document.getElementById('sort-modal').classList.add('open'); updateSortUI(); }
+function closeSort() { document.getElementById('sort-modal').classList.remove('open'); }
+function setSort(s)  {
+  sortBy = s;
+  document.getElementById('sort-label').textContent = {id:'ID',status:'Status',reason:'Reason',time:'Time'}[s];
+  updateSortUI(); closeSort(); currentPage=1; renderDrilldown();
+}
+function updateSortUI() {
+  ['id','status','reason','time'].forEach(s => {
+    document.getElementById(`sc-${s}`).textContent = sortBy===s ? '✓' : '';
+    document.querySelector(`[data-sort="${s}"]`).classList.toggle('active', sortBy===s);
+  });
+}
+
+// ── TOAST ──
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type || '';
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
