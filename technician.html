@@ -34,9 +34,10 @@
     .setup-btn{width:100%;padding:14px;background:var(--header);color:white;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer}
     .setup-hint{font-size:12px;color:var(--text3);line-height:1.6;align-self:flex-start;margin-top:-14px;margin-bottom:20px}
     .setup-skip{font-size:13px;color:var(--text3);margin-top:14px;cursor:pointer;text-decoration:underline}
+    #setup-card{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center}
 
     /* ── APP SHELL ── */
-    #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto}
+    #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;width:100%}
     header{background:var(--header);color:white;padding:env(safe-area-inset-top,14px) 16px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
     .header-left{display:flex;align-items:center;gap:10px}
     .header-icon{width:34px;height:34px;background:rgba(255,255,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center}
@@ -72,6 +73,7 @@
 
     /* Date list */
     .section-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding:0 16px}
+    #date-list{display:block}
     .date-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 10px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:box-shadow .15s}
     .date-card:active{background:var(--surface2)}
     .date-card.all-done{opacity:.65}
@@ -111,6 +113,7 @@
 
     /* Drone list */
     .drill-list{flex:1;overflow-y:auto;padding:0 16px}
+    #drill-list{display:block}
     .drone-row{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
     .drone-row.selected{border-color:var(--blue);background:var(--blue-bg)}
     .drone-row:active{background:var(--surface2)}
@@ -161,22 +164,111 @@
 
     .empty-msg{text-align:center;padding:40px 16px;color:var(--text3);font-size:14px;line-height:1.7}
     .list-meta{font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500}
+
+    /* =========================================================
+       DESKTOP / LAPTOP VIEW (>=1024px)
+       Layout only — no business logic changes.
+       ========================================================= */
+    @media (min-width:1024px){
+      html,body{height:auto;min-height:100%}
+
+      #app{max-width:1280px;height:auto;min-height:100vh}
+
+      header{padding:18px 32px;position:sticky;top:0;z-index:30}
+      .header-title{font-size:19px}
+
+      #loading{min-height:60vh}
+
+      /* ---- DASHBOARD ---- */
+      #dashboard{overflow-y:visible}
+      .dash-header{padding:20px 32px 0}
+
+      .top-cards{grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:18px}
+      .top-card{padding:20px 24px}
+      .top-card-num{font-size:36px}
+
+      .section-label{padding:0 32px;font-size:13px}
+
+      /* date cards: wide grid so newest-first list still reads
+         top-to-bottom, left-to-right, full width is used */
+      #date-list{
+        display:grid;
+        grid-template-columns:repeat(3,1fr);
+        gap:10px;
+        padding:0 32px;
+      }
+      .date-card{margin:0}
+
+      .dash-footer{height:40px}
+
+      /* ---- DRILLDOWN ---- */
+      .drill-header-bar{padding:16px 32px 0}
+      .mini-cards{grid-template-columns:repeat(3,1fr);gap:14px;max-width:600px;margin:0 auto 16px}
+      .mini-card{padding:14px 10px}
+      .mini-card-num{font-size:24px}
+
+      .drill-toolbar{margin-bottom:12px}
+      .select-all-btn{font-size:14px}
+
+      /* whole page scrolls naturally instead of an inner scroll box */
+      .drill-list{
+        flex:1;
+        overflow-y:visible;
+        padding:0 32px;
+      }
+
+      /* 5-column grid, page fully scrollable (no clipped inner scrollbox) */
+      #drill-list{
+        display:grid;
+        grid-template-columns:repeat(5,1fr);
+        gap:10px;
+        align-items:start;
+      }
+      .drone-row{
+        margin-bottom:0;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:6px;
+        padding:14px 16px 14px 16px;
+        position:relative;
+        padding-right:40px;
+      }
+      .drone-checkbox{position:absolute;top:12px;right:12px}
+      .drone-row-info{width:100%}
+      .status-badge{align-self:flex-start}
+
+      .pagination{grid-column:1/-1;padding:18px 0 28px}
+      .empty-msg{grid-column:1/-1}
+
+      /* Batch bar matches wider container */
+      #batch-bar{max-width:1280px;padding:14px 32px}
+      .sort-box{max-width:480px}
+    }
+
+    @media (min-width:1440px){
+      #app{max-width:1480px}
+      #batch-bar{max-width:1480px}
+      #date-list{grid-template-columns:repeat(4,1fr)}
+      #drill-list{grid-template-columns:repeat(6,1fr)}
+    }
   </style>
 </head>
 <body>
 
 <!-- SETUP -->
 <div id="setup">
-  <div class="setup-logo">
-    <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+  <div id="setup-card">
+    <div class="setup-logo">
+      <svg viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>
+    </div>
+    <div class="setup-title">Drone Repairs</div>
+    <div class="setup-sub">Technician App — connect to the same Apps Script URL</div>
+    <div class="setup-label">Apps Script Web App URL</div>
+    <input class="setup-input" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
+    <div class="setup-hint">Same URL used in the Operator app</div>
+    <button class="setup-btn" onclick="saveSetup()">Connect</button>
+    <div class="setup-skip" onclick="useDemoMode()">Use demo mode</div>
   </div>
-  <div class="setup-title">Drone Repairs</div>
-  <div class="setup-sub">Technician App — connect to the same Apps Script URL</div>
-  <div class="setup-label">Apps Script Web App URL</div>
-  <input class="setup-input" id="setup-url" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
-  <div class="setup-hint">Same URL used in the Operator app</div>
-  <button class="setup-btn" onclick="saveSetup()">Connect</button>
-  <div class="setup-skip" onclick="useDemoMode()">Use demo mode</div>
 </div>
 
 <!-- APP -->
@@ -254,7 +346,9 @@
       </div>
       <div class="list-meta" id="drill-meta"></div>
     </div>
-    <div class="drill-list" id="drill-list"></div>
+    <div class="drill-list" id="drill-list-wrap">
+      <div id="drill-list"></div>
+    </div>
   </div>
 </div>
 
@@ -281,7 +375,10 @@
 <div id="toast"></div>
 
 <script>
-const PAGE_SIZE = 50;
+// PAGE_SIZE scales up on wider screens so the 5-column grid fills ~20 rows
+// (100 drones/page) on desktop, while staying 50/page on mobile. Pure
+// presentation tweak — does not touch any business logic below.
+const PAGE_SIZE = window.innerWidth >= 1024 ? 100 : 50;
 const DEMO_DATA = {
   totalFail: 23, totalWip: 7,
   dates: [
@@ -531,7 +628,11 @@ function renderDrilldown() {
 function goPage(p) {
   currentPage = p;
   renderDrilldown();
-  document.getElementById('drill-list').scrollTop = 0;
+  // Scroll the whole page back to the top of the list (works for both
+  // the mobile inner-scroll list and the desktop full-page scroll)
+  document.getElementById('drill-list-wrap').scrollTop = 0;
+  document.getElementById('drill-header-bar')?.scrollIntoView?.({block:'start',behavior:'smooth'});
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── SELECTION ──
