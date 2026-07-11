@@ -157,6 +157,29 @@
     .sort-option.active{background:var(--blue-bg);color:var(--blue);font-weight:600}
     .sort-check{color:var(--blue);font-weight:700}
 
+    /* ── REPAIR SOLUTION MODAL ── */
+    #repair-modal{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center}
+    #repair-modal.open{display:flex}
+    .repair-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+    .repair-box{position:relative;background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));width:100%;max-width:480px;max-height:85vh;overflow-y:auto;animation:slideUp .2s ease}
+    .repair-title{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text)}
+    .repair-progress{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+    .repair-drone-id{font-size:18px;font-weight:800;color:var(--text)}
+    .repair-drone-reason{font-size:13px;color:var(--text2);margin-bottom:14px}
+    .repair-field-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px}
+    .repair-select{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:var(--surface2);outline:none}
+    .repair-select:focus{border-color:var(--blue)}
+    #repair-solutions-list{display:flex;flex-direction:column;gap:6px}
+    .repair-sol-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);cursor:pointer}
+    .repair-sol-option:has(input:checked){border-color:var(--blue);background:var(--blue-bg)}
+    .repair-sol-checkbox{width:17px;height:17px;accent-color:var(--blue);flex-shrink:0}
+    .repair-no-options{font-size:13px;color:var(--text3);padding:8px 0}
+    .repair-notes{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);background:var(--surface2);outline:none;resize:vertical;min-height:60px;font-family:inherit}
+    .repair-notes:focus{border-color:var(--blue)}
+    .repair-actions{display:flex;gap:10px;margin-top:18px}
+    .repair-cancel-btn{flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text2);cursor:pointer}
+    .repair-confirm-btn{flex:2;padding:12px;background:var(--blue-rft);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;color:white;cursor:pointer}
+
     /* ── TOAST ── */
     #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:white;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200}
     #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -210,6 +233,7 @@
       .empty-msg{grid-column:1/-1}
       #batch-bar{max-width:1280px;padding:14px 32px}
       .sort-box{max-width:480px}
+      .repair-box{max-width:480px}
     }
 
     @media (min-width:1440px){
@@ -268,7 +292,7 @@
       <div class="top-cards">
         <div class="top-card top-card-unqualified">
           <div class="top-card-num" id="total-unqualified">0</div>
-          <div class="top-card-label">Total Unqualified</div>
+          <div class="top-card-label">Total Defects</div>
           <div class="top-card-sub">across all dates</div>
         </div>
         <div class="top-card top-card-wip">
@@ -288,7 +312,7 @@
       <div class="mini-cards">
         <div class="mini-card mc-unqualified">
           <div class="mini-card-num" id="drill-unqualified">0</div>
-          <div class="mini-card-label">Unqualified</div>
+          <div class="mini-card-label">Defect</div>
         </div>
         <div class="mini-card mc-wip">
           <div class="mini-card-num" id="drill-wip">0</div>
@@ -296,7 +320,7 @@
         </div>
         <div class="mini-card mc-rft">
           <div class="mini-card-num" id="drill-rft">0</div>
-          <div class="mini-card-label">Ready for Test</div>
+          <div class="mini-card-label">Repaired</div>
         </div>
       </div>
       <div class="drill-toolbar">
@@ -316,7 +340,7 @@
 
 <div id="batch-bar">
   <div class="batch-count" id="batch-count">0 selected</div>
-  <button class="batch-rft-btn" onclick="batchAction('Ready for Testing')">✓ Ready for Test</button>
+  <button class="batch-rft-btn" onclick="batchAction('Ready for Testing')">✓ Mark Repaired</button>
   <button class="batch-wip-btn" onclick="batchAction('Work In Progress')">⟳ Mark WIP</button>
   <button class="batch-clear-btn" onclick="clearSelection()">✕</button>
 </div>
@@ -332,12 +356,90 @@
   </div>
 </div>
 
+<div id="repair-modal">
+  <div class="repair-backdrop" onclick="cancelRepairFlow()"></div>
+  <div class="repair-box">
+    <div class="repair-title">Mark as Repaired</div>
+    <div class="repair-progress" id="repair-progress"></div>
+    <div class="repair-drone-id" id="repair-drone-id"></div>
+    <div class="repair-drone-reason" id="repair-drone-reason"></div>
+
+    <div class="repair-field-label">Fault Category</div>
+    <select class="repair-select" id="repair-category-select" onchange="onRepairCategoryChange()"></select>
+
+    <div class="repair-field-label">Solution(s) Applied</div>
+    <div id="repair-solutions-list"></div>
+
+    <div class="repair-field-label">Notes (optional)</div>
+    <textarea class="repair-notes" id="repair-notes" placeholder="Add any additional notes..."></textarea>
+
+    <div class="repair-actions">
+      <button class="repair-cancel-btn" onclick="cancelRepairFlow()">Cancel</button>
+      <button class="repair-confirm-btn" id="repair-confirm-btn" onclick="confirmRepairStep()">Next →</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 // PAGE_SIZE scales up on wider screens so the 5-column grid fills ~20 rows
 // (100 drones/page) on desktop, while staying 50/page on mobile.
 const PAGE_SIZE = window.innerWidth >= 1024 ? 100 : 50;
+
+// Preset repair solutions per fault category. Matched against a drone's
+// "reason" text (best-effort keyword match); technician can always override
+// the category manually, and Notes is always available as a free-text option.
+const faultSolutions = {
+  "Mag": [
+    "calibrate",
+    "Mag change",
+    "cable change"
+  ],
+  "Motor": [
+    "ESC change",
+    "Motor change",
+    "ESC firmware",
+    "servo parameter change",
+    "FC to ESC command",
+    "FC to ESC connector changed"
+  ],
+  "ESC No power": [
+    "Buck resolder"
+  ],
+  "FC": [
+    "FC change",
+    "Resolder IC type"
+  ],
+  "Propeller damage": [
+    "Propeller change"
+  ],
+  "RTK": [
+    "HCT2 module changed",
+    "GPS configure",
+    "GPS"
+  ],
+  "GPS": [
+    "change GPS",
+    "GPS - Type Parameter (N/A)"
+  ],
+  "Esp": [
+    "FC change"
+  ],
+  "LED": [
+    "LED change",
+    "wire resolder",
+    "buck change",
+    "Parameter set"
+  ],
+  "Body Damage": [
+    "body changed"
+  ],
+  "ELRS": [
+    "ELRS change",
+    "FC change"
+  ]
+};
 
 // Demo data structurally updated to Unqualified / Ready for Testing mapping
 const DEMO_DATA = {
@@ -380,6 +482,11 @@ let selectedIds = new Set();
 let sortBy = 'id';
 let currentPage = 1;
 let demoMode = false;
+
+// Repair-solution flow state
+let repairQueue = [];
+let repairIndex = 0;
+let repairResults = [];
 
 // ── INIT ──
 window.onload = () => {
@@ -487,14 +594,14 @@ function renderDashboard() {
 
   const container = document.getElementById('date-list');
   if (!allDates.length) {
-    container.innerHTML = '<div class="empty-msg">No unqualified or WIP drones found.<br>All clear! ✅</div>'; return;
+    container.innerHTML = '<div class="empty-msg">No defect or WIP drones found.<br>All clear! ✅</div>'; return;
   }
   container.innerHTML = allDates.map(d => {
     const allDone = d.unqualified === 0 && d.wip === 0;
     const pillsHtml = allDone
-      ? `<span class="dpill dpill-done">✅ All Resolved</span>`
+      ? `<span class="dpill dpill-done">✅ All Repaired</span>`
       : [
-          d.unqualified > 0 ? `<span class="dpill dpill-unqualified">🔴 ${d.unqualified} Unqualified</span>` : '',
+          d.unqualified > 0 ? `<span class="dpill dpill-unqualified">🔴 ${d.unqualified} Defect${d.unqualified===1?'':'s'}</span>` : '',
           d.wip  > 0 ? `<span class="dpill dpill-wip">🟠 ${d.wip} WIP</span>`    : '',
         ].join('');
     return `
@@ -557,8 +664,9 @@ function renderDrilldown() {
     pageItems.forEach(d => {
       const sel      = selectedIds.has(d.id);
       const badgeCls = 'badge-' + d.status.replace(/\s+/g,'-');
-      const label   = d.status === 'Work In Progress' ? 'WIP' : 
-                      d.status === 'Ready for Testing' ? 'Ready for Test' : d.status;
+      const label   = d.status === 'Work In Progress' ? 'WIP' :
+                      d.status === 'Ready for Testing' ? 'Repaired' :
+                      d.status === 'Unqualified' ? 'Defect' : d.status;
       html += `
         <div class="drone-row ${sel?'selected':''}" onclick="toggleSelect('${d.id}')">
           <div class="drone-checkbox"></div>
@@ -625,10 +733,17 @@ function updateBatchBar() {
 function hideBatchBar() { document.getElementById('batch-bar').classList.remove('visible'); }
 
 // ── BATCH ACTION ──
-async function batchAction(status) {
+function batchAction(status) {
   if (!selectedIds.size) return;
   const ids = [...selectedIds];
-  const label = status === 'Ready for Testing' ? 'Ready for Test' : 'WIP';
+
+  // Marking as Repaired requires capturing a fault solution first.
+  if (status === 'Ready for Testing') {
+    startRepairFlow(ids);
+    return;
+  }
+
+  const label = 'WIP';
 
   // Optimistic UI update
   ids.forEach(id => {
@@ -644,8 +759,14 @@ async function batchAction(status) {
   showToast(`✓ ${ids.length} drone${ids.length!==1?'s':''} marked ${label}`, 'success');
 
   if (demoMode) return;
+  syncStatus(ids, status);
+}
+
+async function syncStatus(ids, status, repairDetails) {
   try {
-    await apiCall({ action:'batchUpdate', droneIds: JSON.stringify(ids), status });
+    const params = { action:'batchUpdate', droneIds: JSON.stringify(ids), status };
+    if (repairDetails) params.repairDetails = JSON.stringify(repairDetails);
+    await apiCall(params);
   } catch(e) {
     showToast('Sync failed: ' + e.message, 'error');
   }
@@ -659,6 +780,135 @@ function recalcTotals() {
     totalUnqualified += d.unqualified;
     totalWip  += d.wip;
   });
+}
+
+// ── REPAIR SOLUTION FLOW ──
+// Best-effort keyword match from a drone's reason text to a fault category.
+function guessFaultCategory(reason) {
+  if (!reason) return null;
+  const r = reason.toLowerCase();
+  const keywordMap = [
+    ['compass','Mag'], ['mag','Mag'],
+    ['motor','Motor'],
+    ['no power','ESC No power'], ['power','ESC No power'],
+    ['propeller','Propeller damage'], ['prop','Propeller damage'],
+    ['rtk','RTK'],
+    ['gps','GPS'],
+    ['esp','Esp'],
+    ['led','LED'],
+    ['body','Body Damage'],
+    ['elrs','ELRS'],
+    ['fc','FC'],
+  ];
+  for (const [kw,cat] of keywordMap) {
+    if (r.includes(kw)) return cat;
+  }
+  return null;
+}
+
+function startRepairFlow(ids) {
+  if (!ids.length) return;
+  repairQueue = ids;
+  repairIndex = 0;
+  repairResults = [];
+  document.getElementById('repair-modal').classList.add('open');
+  loadRepairStep();
+}
+
+function loadRepairStep() {
+  const id = repairQueue[repairIndex];
+  const drone = currentDate.drones.find(d => d.id === id);
+  if (!drone) { advanceRepairFlow(); return; }
+
+  document.getElementById('repair-progress').textContent =
+    repairQueue.length > 1 ? `Drone ${repairIndex+1} of ${repairQueue.length}` : '';
+  document.getElementById('repair-drone-id').textContent = drone.id;
+  document.getElementById('repair-drone-reason').textContent = drone.reason || '—';
+
+  const select = document.getElementById('repair-category-select');
+  const categories = Object.keys(faultSolutions);
+  const guessed = guessFaultCategory(drone.reason);
+  select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('') + `<option value="__other__">Other</option>`;
+  select.value = guessed || '__other__';
+
+  renderRepairSolutions();
+  document.getElementById('repair-notes').value = '';
+  document.getElementById('repair-confirm-btn').textContent =
+    repairIndex < repairQueue.length - 1 ? 'Next →' : 'Confirm & Mark Repaired';
+}
+
+function onRepairCategoryChange() { renderRepairSolutions(); }
+
+function renderRepairSolutions() {
+  const cat = document.getElementById('repair-category-select').value;
+  const list = document.getElementById('repair-solutions-list');
+  const options = faultSolutions[cat] || [];
+  if (!options.length) {
+    list.innerHTML = '<div class="repair-no-options">No preset solutions for this category — please use Notes below.</div>';
+    return;
+  }
+  list.innerHTML = options.map(sol => `
+    <label class="repair-sol-option">
+      <input type="checkbox" value="${sol}" class="repair-sol-checkbox"/>
+      <span>${sol}</span>
+    </label>`).join('');
+}
+
+function confirmRepairStep() {
+  const cat = document.getElementById('repair-category-select').value;
+  const checked = [...document.querySelectorAll('.repair-sol-checkbox:checked')].map(c => c.value);
+  const notes = document.getElementById('repair-notes').value.trim();
+
+  if (!checked.length && !notes) {
+    showToast('Select a solution or add a note', 'error');
+    return;
+  }
+
+  const id = repairQueue[repairIndex];
+  repairResults.push({ droneId:id, category:cat === '__other__' ? 'Other' : cat, solutions:checked, notes });
+  advanceRepairFlow();
+}
+
+function advanceRepairFlow() {
+  repairIndex++;
+  if (repairIndex < repairQueue.length) {
+    loadRepairStep();
+  } else {
+    finishRepairFlow();
+  }
+}
+
+function cancelRepairFlow() {
+  document.getElementById('repair-modal').classList.remove('open');
+  repairQueue = []; repairIndex = 0; repairResults = [];
+}
+
+function finishRepairFlow() {
+  document.getElementById('repair-modal').classList.remove('open');
+  const ids = repairResults.map(r => r.droneId);
+  const queuedResults = repairResults;
+  repairQueue = []; repairIndex = 0; repairResults = [];
+  if (!ids.length) return;
+
+  // Optimistic UI update — attach the captured solution/notes to each drone
+  queuedResults.forEach(r => {
+    const drone = currentDate.drones.find(d => d.id === r.droneId);
+    if (drone) {
+      drone.status = 'Ready for Testing';
+      drone.repairCategory = r.category;
+      drone.repairSolutions = r.solutions;
+      drone.repairNotes = r.notes;
+    }
+  });
+
+  recalcTotals();
+  selectedIds.clear();
+  renderDrilldown();
+  renderDashboard();
+  showToast(`✓ ${ids.length} drone${ids.length!==1?'s':''} marked Repaired`, 'success');
+
+  if (demoMode) return;
+  syncStatus(ids, 'Ready for Testing', queuedResults);
 }
 
 // ── SORT ──
